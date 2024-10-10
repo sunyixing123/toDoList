@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>To-Do List</title>
+	</head>
+	<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+	<body>
+		<div id="app">
+            <el-card class="box-card"  >
+                <el-form :inline="true"  class="user-search">
+                    <el-form-item>
+                        <el-select  v-model="status" placeholder="All" >
+                            <el-option label="All" value='2'></el-option>
+                            <el-option label="Incomplete" value='0'></el-option>
+                            <el-option label="Completed" value='1'></el-option>
+                          </el-select>
+                    </el-form-item>
+                    <el-form-item style="text-align: right;">
+                        <el-button @click="dialogFormVisible = true" type="primary">Add Task</el-button>
+                    </el-form-item>
+                  </el-form>
+                <el-table :data="tasks" border style="width: 100%"  empty-text="No data available" :row-class-name="tableRowClassName">
+                    <el-table-column  prop="title" label="Task Title"  min-width="100"></el-table-column>
+                    <el-table-column  prop="description" label="Task Description"  min-width="200"></el-table-column>
+                    <el-table-column  prop="update_time" label="Update Time"  min-width="120"></el-table-column>
+                    <el-table-column fixed="right" label="Operation" min-width="100">
+                        <template slot-scope="scope">
+                            <el-button type="text" @click="finnishTask(scope.row.id)" v-if="scope.row.status!=1">complete</el-button>
+                            <el-button type="text"  @click="editTask(scope.row.id)">edit</el-button>
+                            <el-button @click="deleteTask(scope.row.id)" type="text" >delete</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </el-card>
+            <el-dialog title="Edit Task"  :close-on-click-modal="false"   :visible.sync="dialogFormVisible"width="30%" >
+                <el-form :model="form" :rules="rules" ref="taskForm">
+                  <el-form-item label="Task Title"  prop="title">
+                        <el-input v-model="form.title"  ></el-input>
+                      </el-form-item>
+                  <el-form-item label="Task Description"  prop="description">
+                    <el-input type="textarea" v-model="form.description"></el-input>
+                  </el-form-item>
+                </el-form>
+                <div slot="footer" class="dialog-footer">
+                  <el-button  @click="cancelSubmitTask()">Cancel</el-button>
+                  <el-button type="primary" @click="submitTask()">Submit</el-button>
+                </div>
+              </el-dialog>
+        </div>
+	</body>
+	<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+	<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+	<script>
+		new Vue({
+		      el: '#app',
+		      data: function() {
+		        return {
+                    status:'2',
+                    dialogFormVisible:false,
+                    form:{
+                        title:'',
+                        description:''
+                    },
+                    tasks: [],
+                    rules: {
+                        title: [
+                            { required: true, message: 'Please enter the task title', trigger: 'blur' },
+                        ],
+                        description: [
+                            { required: true, message: 'Please enter task description', trigger: 'blur' }
+                        ]
+                    }
+                }
+		      },
+              watch:{
+                status(newValue, oldValue) {
+                    this.getTaskList();
+                }
+              },
+              mounted:function(){
+                this.getTaskList();
+              },
+              methods: {
+                getTaskList:function(){
+                    const response = fetch('http://127.0.0.1:3001/getTaskList?status='+this.status)
+                        .then(res => res.json())
+                        .then(data =>  this.tasks =data.data);
+                },
+                finnishTask: function(id){
+                    const response = fetch('http://127.0.0.1:3001/finnishTask/'+id)
+                        .then(res => res.json())
+                        .then(data =>  this.getTaskList());
+                },
+                editTask: function(id){
+                    const response = fetch('http://127.0.0.1:3001/getTaskById/'+id)
+                        .then(res => res.json())
+                        .then(data => {
+                            console.log(999,data.data[0]);
+                            this.form =data.data[0]
+                            this.dialogFormVisible = true;
+                        });
+                },
+                deleteTask: function(id){
+                    Vue.prototype.$confirm('This operation will permanently delete the data. Do you want to continue?', 'Tips', {
+                    confirmButtonText: 'confirm',
+                    cancelButtonText: 'cancel',
+                    type: 'warning'
+                    }).then(() => {
+                        const response = fetch('http://127.0.0.1:3001/deleteTask/'+id)
+                        .then(res => res.json())
+                        .then(data => {
+                            this.getTaskList();
+                            Vue.prototype.$message({
+                            type: 'success',
+                            message: 'Delete successfully!'
+                            });
+                        });
+                    }).catch(() => {
+                    });
+                },
+                submitTask:function(){
+                    this.$refs['taskForm'].validate((valid) => {
+                        if (valid) {
+                            let urlAddr=this.form.id?'updateTask':'addTask';
+                            const response = fetch('http://127.0.0.1:3001/'+urlAddr, {
+                            method: "post",
+                            body:JSON.stringify(this.form),
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            }).then(res => res.json())
+                            .then(data => {
+                                this.cancelSubmitTask();
+                                this.getTaskList()
+                                Vue.prototype.$message({
+                                    type: 'success',
+                                    message: 'Operation successful!'
+                                });
+                            });   
+                        } else {
+                            console.log('error submit!!');
+                            return false;
+                        }
+                    });
+                },
+                cancelSubmitTask:function(){
+                    this.dialogFormVisible = false;
+                    this.$refs['taskForm'].resetFields();
+                    this.form={
+                        title:'',
+                        description:''
+                    }
+                },
+                 //指定行颜色
+                tableRowClassName: function({ row, rowIndex }) {
+                    if (row.status=='1') {
+                        return 'complete-row';
+                    }
+                },
+            }
+		})
+	</script>
+    <style>
+        .complete-row{
+            color: #c0c4cc;
+            background-image: none;
+            background-color: #c0c4cc;
+        }
+    </style>
+</html>
