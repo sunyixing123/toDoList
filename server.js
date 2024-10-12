@@ -34,7 +34,9 @@ const connection = mysql.createConnection(db.dbConfig);
 
 
 
-//getTaskList
+//This is the interface for obtaining the task list, 
+//which can pass a status parameter to query the list in different states. 
+//The list is arranged in reverse chronological order according to the update time
 app.get('/getTaskList',(req,res) => {
     const status = req.query.status;
     console.log(status);
@@ -52,7 +54,8 @@ app.get('/getTaskList',(req,res) => {
     })
   })
 
-  //getTaskById
+  //This is an interface for obtaining tasks based on task ID, 
+  //used to display task information during editing
   app.get('/getTaskById/:id',(req,res) => {
     const id = req.params.id;
     const sqlStr = "select * from tasks where id=?  order by update_time desc";
@@ -65,7 +68,7 @@ app.get('/getTaskList',(req,res) => {
     })
   })
 
-//addTask
+//This is the interface for adding tasks
 app.post('/addTask', (req, res) => {
   console.log(req.body);
     const title = req.body.title;
@@ -81,7 +84,7 @@ app.post('/addTask', (req, res) => {
     });
 });
 
-// updateTask
+//This is the interface for editing tasks
 app.post("/updateTask", (req, res) => {
     const id = req.body.id;
     const title = req.body.title;
@@ -96,7 +99,7 @@ app.post("/updateTask", (req, res) => {
     });
   });
 
-  //deleteTask
+  //This is the interface for deleting tasks
   app.get("/deleteTask/:id", (req, res) => {
     const id = req.params.id;
     const sqlStr = "delete from tasks where id = ?";
@@ -109,7 +112,7 @@ app.post("/updateTask", (req, res) => {
     });
   });
 
-  //finnishTask
+  //This is the interface for marking the completion status of tasks
   app.get("/finnishTask/:id", (req, res) => {
     const id = req.params.id;
     const sqlStr = "update tasks set status = 1  where id = ?";
@@ -124,7 +127,7 @@ app.post("/updateTask", (req, res) => {
 
 
 
-//db
+//This is the method for handling database connections
 connection.connect((err) => {
   if (err) {
     console.log("Database connection failed, reason：", err);
